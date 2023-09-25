@@ -1,15 +1,18 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace API.Models
 {
 
-    [Table(name:"tb_m_universities")]
-    public class University : BaseEntity 
+    //membuat anotasi tabel dengan nama custom
+    [Table("tb_m_university")]
+    public class University : BaseEntity
     {
-        [Column(name:"code", TypeName = "nvarchar(50)")]
+        //tidak boleh null, kolom dinamai dan tipe data spesifik
+        [Required, Column("code", TypeName = "nvarchar(50)")]
         public string Code { get; set; }
-        [Column(name: "name", TypeName = "nvarchar(100)")]
+        //tidak boleh null, kolom dinamai dan tipe data spesifik
+        [Required, Column("name", TypeName = "nvarchar(100)")]
         public string Name { get; set; }
-        
     }
 }

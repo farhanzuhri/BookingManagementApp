@@ -5,21 +5,26 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace API.Models
 {
 
+    //membuat anotasi tabel dengan nama custom
     [Table(name: "tb_m_bookings")]
     public class Booking : BaseEntity
     {
-        [Column(name: "strat_date")]
+        //tidak boleh null dan kolom dinamai
+        [Required, Column("start_date")]
         public DateTime StartDate { get; set; }
-        [Column(name: "end_date")]
-        public DateTime EndDate { get; set; }
-        [Column(name: "status")]
+        //tidak boleh null dan kolom dinamai
+        [Required, Column("status")]
         public StatusLevel Status { get; set; }
-        [Column(name: "remarks"), MaxLength(100)]
+        //tidak boleh null, kolom dinamai dan tipe data spesifik
+        [Required, Column("remarks", TypeName = "nvarchar")]
         public string Remarks { get; set; }
-        [Column(name: "room_guid")]
+        //tidak boleh null dan kolom dinamai
+        [ForeignKey("Room"), Column("room_guid")]
         public Guid RoomGuid { get; set; }
-        [Column(name: "employee_guid")]
+        //tidak boleh null dan kolom dinamai
+        [ForeignKey("Employee"), Column("employee_id")]
         public Guid EmployeeGuid { get; set; }
+
 
     }
 }

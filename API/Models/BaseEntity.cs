@@ -5,12 +5,15 @@ namespace API.Models
 {
     public abstract class BaseEntity
     {
-        
-        [Key, Column(name: "guid")]
+
+        //membuat primary key dan menamai kolom
+        [Key, Column("guid")]
         public Guid Guid { get; set; }
-        [Column(name: "created_date")]
-        public DateTime CreatedDate { get; set; }
-        [Column(name: "modified_date")]
+        //tidak boleh null dan menamai kolom 
+        [Required, Column("created_date")]
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        //tidak boleh null dan menamai kolom 
+        [Required, Column("modified_date")]
         public DateTime ModifiedDate { get; set; }
 
     }
