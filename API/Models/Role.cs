@@ -1,8 +1,12 @@
-﻿namespace API.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace API.Models
 {
-    public class Role : Date
+
+    [Table(name: "tb_m_roles")]
+    public class Role : BaseEntity
     {
-        public Guid Guid { get; set; }
+        [Column(name: "name", TypeName = "nvarchar(100)")]
         public string Name { get; set; }   
         
     }
