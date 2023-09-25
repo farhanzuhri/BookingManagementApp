@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using API.Utilities.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace API.Models
@@ -12,7 +13,7 @@ namespace API.Models
         [Column(name: "end_date")]
         public DateTime EndDate { get; set; }
         [Column(name: "status")]
-        public int Status { get; set; }
+        public StatusLevel Status { get; set; }
         [Column(name: "remarks"), MaxLength(100)]
         public string Remarks { get; set; }
         [Column(name: "room_guid")]
