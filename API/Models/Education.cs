@@ -21,3 +21,4 @@ namespace API.Models
         [ForeignKey("University"), Column("university_guid")]
         public Guid UniversityGuid { get; set; }
     }
+}
