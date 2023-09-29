@@ -13,6 +13,10 @@ namespace API.Models
         //tidak boleh null, menamai kolom dan tipe data spesifik
         [Required, ForeignKey("Role"), Column("role_guid")]
         public Guid RoleGuid { get; set; }
-       
+
+        //cardinality
+        public Account? Account { get; set; }
+        public Role? Role { get; set; }
+
     }
 }

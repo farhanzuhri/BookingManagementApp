@@ -22,6 +22,10 @@ namespace API.Models
         //tidak boleh null dan kolom dinamai
         [Required, Column(name: "expired_date")]
         public DateTime ExpiredDate { get; set; }
-       
+
+        //cardinality
+        public ICollection<AccountRole>? AccountRoles { get; set; }
+        public Employee? Employee { get; set; }
+
     }
 }

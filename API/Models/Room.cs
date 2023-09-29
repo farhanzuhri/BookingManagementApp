@@ -18,5 +18,8 @@ namespace API.Models
         //tidak boleh null dan kolom dinamai 
         [Required, Column("capacity")]
         public int Capacity { get; set; }
+
+        //cardinality
+        public ICollection<Booking>? Bookings { get; set; }
     }
 }

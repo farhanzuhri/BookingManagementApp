@@ -11,5 +11,10 @@ namespace API.Models
         //tidak boleh null, menamai kolom dan tipe data spesifik
         [Required, Column("name", TypeName = "nvarchar(100)")]
         public string Name { get; set; }
+
+        //cardinality
+        public ICollection<AccountRole>? AccountRoles { get; set; }
     }
 }
+
+

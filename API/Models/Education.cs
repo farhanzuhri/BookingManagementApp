@@ -20,5 +20,9 @@ namespace API.Models
         //tidak boleh null, kolom dinamai dan tipe data spesifik
         [ForeignKey("University"), Column("university_guid")]
         public Guid UniversityGuid { get; set; }
+
+        //Cardinality
+        public University? University { get; set; }
+        public Employee? Employee { get; set; }
     }
 }

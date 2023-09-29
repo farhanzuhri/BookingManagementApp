@@ -25,6 +25,10 @@ namespace API.Models
         [ForeignKey("Employee"), Column("employee_id")]
         public Guid EmployeeGuid { get; set; }
 
+        // Cardinality
+        public Employee? Employee { get; set; }
+        public Room? Room { get; set; }
+        
 
     }
 }
