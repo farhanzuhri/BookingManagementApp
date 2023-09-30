@@ -66,16 +66,16 @@ namespace API.Controllers
         }
 
         [HttpDelete]
-        public IActionResult Delete(University university)
+        public IActionResult Delete(Guid guid)
         {
-            var deleteUniversity = _universityRepository.Delete(university);
-
-            if (!deleteUniversity)
+            var university = _universityRepository.GetByGuid(guid);
+            var deletedUniversity = _universityRepository.Delete(university);
+            if (!deletedUniversity)
             {
-                return BadRequest("Failed to delete data");
+                return BadRequest("Failed To Delete Data");
             }
 
-            return Ok(deleteUniversity);
+            return Ok(deletedUniversity);
         }
     }
 }
