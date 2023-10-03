@@ -68,7 +68,7 @@ namespace API.Controllers
             return Ok(result);
         }
         //method delete dari http untuk delete education
-        [HttpDelete]
+        [HttpDelete("{guid}")]
         public IActionResult Delete(Guid guid)
         {
             var education = _educationRepository.GetByGuid(guid);

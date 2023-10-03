@@ -64,9 +64,9 @@ namespace API.Controllers
 
                 return Ok(result);
             }
-            //method delete dari http untuk delete accountRole
-            [HttpDelete]
-            public IActionResult Delete(Guid guid)
+        //method delete dari http untuk delete accountRole
+        [HttpDelete("{guid}")]
+        public IActionResult Delete(Guid guid)
             {
                 var accountRole = _accountRoleRepository.GetByGuid(guid);
                 var result = _accountRoleRepository.Delete(accountRole);

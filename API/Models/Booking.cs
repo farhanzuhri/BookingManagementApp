@@ -12,6 +12,8 @@ namespace API.Models
         //tidak boleh null dan kolom dinamai
         [Required, Column("start_date")]
         public DateTime StartDate { get; set; }
+        [Required, Column("end_date")]
+        public DateTime EndDate { get; set; }
         //tidak boleh null dan kolom dinamai
         [Required, Column("status")]
         public StatusLevel Status { get; set; }

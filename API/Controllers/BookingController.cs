@@ -67,7 +67,7 @@ namespace API.Controllers
                 return Ok(result);
             }
             //method delete dari http untuk delete booking
-            [HttpDelete]
+            [HttpDelete("{guid}")]
             public IActionResult Delete(Guid guid)
             {
                 var booking = _bookingRepository.GetByGuid(guid);

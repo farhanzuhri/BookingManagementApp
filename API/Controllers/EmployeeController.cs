@@ -64,9 +64,9 @@ namespace API.Controllers
 
                 return Ok(result);
             }
-            //method delete dari http untuk delete employee
-            [HttpDelete]
-            public IActionResult Delete(Guid guid)
+        //method delete dari http untuk delete employee
+        [HttpDelete("{guid}")]
+        public IActionResult Delete(Guid guid)
             {
                 var employee = _employeeRepository.GetByGuid(guid);
                 var result = _employeeRepository.Delete(employee);

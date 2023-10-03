@@ -65,7 +65,7 @@ namespace API.Controllers
             return Ok(updateUniversity);
         }
 
-        [HttpDelete]
+        [HttpDelete("{guid}")]
         public IActionResult Delete(Guid guid)
         {
             var university = _universityRepository.GetByGuid(guid);

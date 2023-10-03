@@ -64,9 +64,9 @@ namespace API.Controllers
 
                 return Ok(result);
             }
-            //method delete dari http untuk delete room
-            [HttpDelete]
-            public IActionResult Delete(Guid guid)
+        //method delete dari http untuk delete room
+        [HttpDelete("{guid}")]
+        public IActionResult Delete(Guid guid)
             {
                 var room = _roomRepository.GetByGuid(guid);
                 var result = _roomRepository.Delete(room);
