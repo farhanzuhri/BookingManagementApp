@@ -3,7 +3,10 @@ using API.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using API.Repositories;
-
+using API.Utilities.Handler;
+using API.DTOs.Educations;
+using API.DTOs.Universities;
+using System.Net;
 
 namespace API.Controllers
 {
@@ -26,10 +29,16 @@ namespace API.Controllers
             var result = _educationRepository.GetAll();
             if (!result.Any())
             {
-                return NotFound("Data Not Found");
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
+            var data = result.Select(i => (EducationDto)i);
 
-            return Ok(result);
+            return Ok(new ResponseOkHandler<IEnumerable<EducationDto>>(data));
         }
         //method get dari http untuk getByGuid education
         [HttpGet("{guid}")]

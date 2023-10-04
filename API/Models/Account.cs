@@ -8,7 +8,7 @@ namespace API.Models
     public class Account : BaseEntity 
     {
         //tidak boleh null, menamai kolom dan tipe data spesifik
-        [Required, Column(name: "password"), MaxLength(100)]
+        [Required, Column(name: "password"), MaxLength(250)]
         public string Password { get; set; }
         //tidak boleh null dan kolom dinamai
         [Required, Column(name: "is_deleted")]
