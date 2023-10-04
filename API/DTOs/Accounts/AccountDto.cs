@@ -8,7 +8,7 @@ namespace API.DTOs.Accounts
         public bool IsDeleted { get; set; }
         public int Otp { get; set; }
         public bool IsUsed { get; set; }
-        public DateTime ExpiredDate { get; set; }
+        public DateTime ExpiredTime { get; set; }
 
         public static explicit operator AccountDto(Account account)
         {
@@ -19,7 +19,7 @@ namespace API.DTOs.Accounts
                 IsDeleted = account.IsDeleted,
                 Otp = account.Otp,
                 IsUsed = account.IsUsed,
-                ExpiredDate = account.ExpiredDate
+                ExpiredTime = account.ExpiredTime
             };
         }
 
@@ -32,7 +32,7 @@ namespace API.DTOs.Accounts
                 IsDeleted = accountDto.IsDeleted,
                 Otp = accountDto.Otp,
                 IsUsed = accountDto.IsUsed,
-                ExpiredDate = accountDto.ExpiredDate,
+                ExpiredTime = accountDto.ExpiredTime,
                 ModifiedDate = DateTime.Now
             };
         }

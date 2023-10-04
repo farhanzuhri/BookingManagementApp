@@ -3,6 +3,10 @@ using API.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using API.Repositories;
+using API.DTOs.Universities;
+using API.Utilities.Handlers;
+using API.Utilities.Handler;
+using System.Net;
 
 namespace API.Controllers
 {
@@ -23,10 +27,20 @@ namespace API.Controllers
             var result = _universityRepository.GetAll();
             if (!result.Any())
             {
-                return NotFound("Data Not Found");
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
-
-            return Ok(result);
+            var data = result.Select(u => (UniversityDto)u);
+            /*var universityDto = new List<UniversityDto>();
+               foreach (var university in result)
+               {
+                   universityDto.Add((UniversityDto) university);
+               }*/
+            return Ok(new ResponseOkHandler<IEnumerable<UniversityDto>>(data));
         }
 
         [HttpGet("{guid}")]
@@ -35,47 +49,103 @@ namespace API.Controllers
             var result = _universityRepository.GetByGuid(guid);
             if (result is null)
             {
-                return NotFound("Id Not Found");
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
-            return Ok(result);
+            return Ok(new ResponseOkHandler<UniversityDto>((UniversityDto)result));
         }
 
         [HttpPost]
-        public IActionResult Create(University university)
+        public IActionResult Create(CreateUniversityDto createUniversityDto)
         {
-            var result = _universityRepository.Create(university);
-            if (result is null)
+            try
             {
-                return BadRequest("Failed to create data");
-            }
+                University toCreate = createUniversityDto;
+                toCreate.Guid = new Guid();
+                var result = _universityRepository.Create(toCreate);
+                return Ok(new ResponseOkHandler<UniversityDto>((UniversityDto)result));
 
-            return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to create data",
+                    Error = e.Message
+                });
+            }
         }
 
         [HttpPut]
-        public IActionResult Update(University university)
+        public IActionResult Update(UniversityDto universityDto)
         {
-            var updateUniversity = _universityRepository.Update(university);
-
-            if (!updateUniversity)
+            try
             {
-                return BadRequest("Failed to update data");
-            }
+                var entity = _universityRepository.GetByGuid(universityDto.Guid);
+                if (entity is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                University toUpdate = universityDto;
+                toUpdate.CreatedDate = entity.CreatedDate;
 
-            return Ok(updateUniversity);
+                var result = _universityRepository.Update(toUpdate);
+                return Ok(new ResponseOkHandler<String>("Data Updated"));
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to update data",
+                    Error = e.Message
+                });
+            }
         }
 
         [HttpDelete("{guid}")]
         public IActionResult Delete(Guid guid)
         {
-            var university = _universityRepository.GetByGuid(guid);
-            var deletedUniversity = _universityRepository.Delete(university);
-            if (!deletedUniversity)
+            try
             {
-                return BadRequest("Failed To Delete Data");
-            }
+                var university = _universityRepository.GetByGuid(guid);
+                if (university is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                var result = _universityRepository.Delete(university);
 
-            return Ok(deletedUniversity);
+                return Ok(new ResponseOkHandler<String>("Data Deleted"));
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to delete data",
+                    Error = e.Message
+                });
+            }
         }
     }
 }

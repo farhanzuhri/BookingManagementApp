@@ -5,12 +5,14 @@ using System;
 using API.Repositories;
 using API.DTOs.Accounts;
 using API.Utilities.Handler;
+using API.Utilities.Handlers;
+using System.Net;
 
 namespace API.Controllers
 {
-        //membuat endpoint routing untuk account controller 
-        [ApiController]
-        [Route("api/[controller]")]
+    //membuat endpoint routing untuk account controller 
+    [ApiController]
+    [Route("api/[controller]")]
     public class AccountController : ControllerBase
     {
         //membuat account repository untuk mengakses database sebagai readonly dan private
@@ -27,10 +29,15 @@ namespace API.Controllers
             var result = _accountRepository.GetAll();
             if (!result.Any())
             {
-                return NotFound("Data Not Found");
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
             var data = result.Select(i => (AccountDto)i);
-            return Ok(data);
+            return Ok(new ResponseOkHandler<IEnumerable<AccountDto>>(data));
         }
         //method get dari http untuk getByGuid account
         [HttpGet("{guid}")]
@@ -39,51 +46,105 @@ namespace API.Controllers
             var result = _accountRepository.GetByGuid(guid);
             if (result is null)
             {
-                return NotFound("Data Not Found");
-
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
-            return Ok((AccountDto)result);
+            return Ok(new ResponseOkHandler<AccountDto>((AccountDto)result));
         }
         //method post dari http untuk create account
         [HttpPost]
-        public IActionResult Create(CreateAccountDto account)
+        public IActionResult Create(CreateAccountDto createAccountDto)
         {
-            Account toCreate = account;
-            toCreate.Password = HashHandler.HashPassword(account.Password);
-
-            var result = _accountRepository.Create(toCreate);
-
-            if (result is null)
+            try
             {
-                return BadRequest("Failed To Create Data");
+                Account toCreate = createAccountDto;
+                toCreate.Password = HashHandler.HashPassword(createAccountDto.Password);
+
+                var result = _accountRepository.Create(toCreate);
+                return Ok(new ResponseOkHandler<AccountDto>((AccountDto)result));
+
             }
-            return Ok((AccountDto)result);
+
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to create data",
+                    Error = e.Message
+                });
+            }
         }
 
         //method put dari http untuk Update account
         [HttpPut]
-        public IActionResult Update(AccountDto account)
+        public IActionResult Update(AccountDto accountDto)
         {
-            var result = _accountRepository.Update(account);
-            if (!result)
+            try
             {
-                return BadRequest("Failed To Update Data");
-            }
+                var entity = _accountRepository.GetByGuid(accountDto.Guid);
+                if (entity is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                Account toUpdate = accountDto;
+                toUpdate.CreatedDate = entity.CreatedDate;
+                var result = _accountRepository.Update(toUpdate);
+                return Ok(new ResponseOkHandler<String>("Data Updated"));
 
-            return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to create data",
+                    Error = e.Message
+                });
+            }
         }
         //method delete dari http untuk delete account
         [HttpDelete("{guid}")]
         public IActionResult Delete(Guid guid)
         {
-            var account = _accountRepository.GetByGuid(guid);
-            var result = _accountRepository.Delete(account);
-            if (!result)
+            try
             {
-                return BadRequest("Failed To Delete Data");
-            }
+                var account = _accountRepository.GetByGuid(guid);
+                if (account is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                var result = _accountRepository.Delete(account);
 
-            return Ok(result);
+                return Ok(new ResponseOkHandler<String>("Data Deleted"));
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to delete data",
+                    Error = e.Message
+                });
+            }
         }
     }
 }

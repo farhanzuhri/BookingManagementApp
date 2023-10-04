@@ -11,6 +11,7 @@ namespace API.DTOs.AccountRoles
         {
             return new AccountRole
             {
+                Guid = new Guid(),
                 AccountGuid = createAccountRoleDto.AccountGuid,
                 RoleGuid = createAccountRoleDto.RoleGuid,
                 CreatedDate = DateTime.Now,

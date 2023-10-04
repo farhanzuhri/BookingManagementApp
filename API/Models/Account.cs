@@ -20,8 +20,8 @@ namespace API.Models
         [Required, Column(name: "isused")]
         public bool IsUsed { get; set; }
         //tidak boleh null dan kolom dinamai
-        [Required, Column(name: "expired_date")]
-        public DateTime ExpiredDate { get; set; }
+        [Required, Column("expired_time")]
+        public DateTime ExpiredTime { get; set; }
 
         //cardinality
         public ICollection<AccountRole>? AccountRoles { get; set; }

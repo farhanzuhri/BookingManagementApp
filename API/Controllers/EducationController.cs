@@ -3,6 +3,7 @@ using API.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using API.Repositories;
+using API.Utilities.Handlers;
 using API.Utilities.Handler;
 using API.DTOs.Educations;
 using API.DTOs.Universities;
@@ -17,7 +18,7 @@ namespace API.Controllers
     {
         //membuat education repository untuk mengakses database sebagai readonly dan private
         private readonly IEducationRepository _educationRepository;
-        
+
         public EducationController(IEducationRepository educationRepository)
         {
             _educationRepository = educationRepository;
@@ -47,47 +48,102 @@ namespace API.Controllers
             var result = _educationRepository.GetByGuid(guid);
             if (result is null)
             {
-                return NotFound("Data Not Found");
-
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
             }
-            return Ok(result);
+            return Ok(new ResponseOkHandler<EducationDto>((EducationDto)result));
         }
         //method post dari http untuk create education
         [HttpPost]
-        public IActionResult Create(Education education)
+        public IActionResult Create(CreateEducationDto createEducationDto)
         {
-            var result = _educationRepository.Create(education);
-            if (result is null)
+            try
             {
-                return BadRequest("Failed To Create Data");
+                Education toCreate = createEducationDto;
+                var result = _educationRepository.Create(toCreate);
+
+                return Ok(new ResponseOkHandler<EducationDto>((EducationDto)result));
             }
-            return Ok(result);
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to create data",
+                    Error = e.Message
+                });
+            }
         }
 
         //method put dari http untuk Update education
         [HttpPut]
-        public IActionResult Update(Education education)
+        public IActionResult Update(EducationDto educationDto)
         {
-            var result = _educationRepository.Update(education);
-            if (!result)
+            try
             {
-                return BadRequest("Failed To Update Data");
-            }
+                var entity = _educationRepository.GetByGuid(educationDto.Guid);
+                if (entity is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                Education toUpdate = educationDto;
+                toUpdate.CreatedDate = entity.CreatedDate;
+                var result = _educationRepository.Update(educationDto);
 
-            return Ok(result);
+                return Ok(new ResponseOkHandler<String>("Data Updated"));
+
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to update data",
+                    Error = e.Message
+                });
+            }
         }
         //method delete dari http untuk delete education
         [HttpDelete("{guid}")]
         public IActionResult Delete(Guid guid)
         {
-            var education = _educationRepository.GetByGuid(guid);
-            var result = _educationRepository.Delete(education);
-            if (!result)
+            try
             {
-                return BadRequest("Failed To Delete Data");
-            }
+                var education = _educationRepository.GetByGuid(guid);
+                if (education is null)
+                {
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                var result = _educationRepository.Delete(education);
+                return Ok(new ResponseOkHandler<String>("Data Deleted"));
 
-            return Ok(result);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to delete data",
+                    Error = e.Message
+                });
+            }
         }
     }
 }

@@ -1,6 +1,11 @@
 ﻿using API.Contracts;
+using API.DTOs;
+using API.DTOs.Bookings;
 using API.Models;
+using API.Utilities.Handler;
+using API.Utilities.Handlers;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace API.Controllers
 {
@@ -13,7 +18,7 @@ namespace API.Controllers
         {
             //membuat booking repository untuk mengakses database sebagai readonly dan private
             private readonly IBookingRepository _bookingRepository;
-            
+
             public BookıngController(IBookingRepository bookingRepository)
             {
                 _bookingRepository = bookingRepository;
@@ -25,10 +30,16 @@ namespace API.Controllers
                 var result = _bookingRepository.GetAll();
                 if (!result.Any())
                 {
-                    return NotFound("Data Not Found");
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
                 }
+                var data = result.Select(i => (BookingDto)i);
 
-                return Ok(result);
+                return Ok(new ResponseOkHandler<IEnumerable<BookingDto>>(data));
             }
             //method get dari http untuk getByGuid booking
             [HttpGet("{guid}")]
@@ -37,47 +48,101 @@ namespace API.Controllers
                 var result = _bookingRepository.GetByGuid(guid);
                 if (result is null)
                 {
-                    return NotFound("Data Not Found");
-
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
                 }
-                return Ok(result);
+                return Ok(new ResponseOkHandler<BookingDto>((BookingDto)result));
             }
             //method post dari http untuk create booking
             [HttpPost]
-            public IActionResult Create(Booking booking)
+            public IActionResult Create(CreateBookingDto createBookingDto)
             {
-                var result = _bookingRepository.Create(booking);
-                if (result is null)
+                try
                 {
-                    return BadRequest("Failed To Create Data");
+                    Booking toCreate = createBookingDto;
+                    var result = _bookingRepository.Create(toCreate);
+                    return Ok(new ResponseOkHandler<BookingDto>((BookingDto)result));
+
                 }
-                return Ok(result);
+                catch (Exception e)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status500InternalServerError,
+                        Status = HttpStatusCode.InternalServerError.ToString(),
+                        Message = "Failed to create data",
+                        Error = e.Message
+                    });
+                }
             }
 
             //method put dari http untuk Update booking
             [HttpPut]
-            public IActionResult Update(Booking booking)
+            public IActionResult Update(BookingDto bookingDto)
             {
-                var result = _bookingRepository.Update(booking);
-                if (!result)
+                try
                 {
-                    return BadRequest("Failed To Update Data");
-                }
+                    var entity = _bookingRepository.GetByGuid(bookingDto.Guid);
+                    if (entity is null)
+                    {
+                        return NotFound(new ResponseErrorHandler
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Status = HttpStatusCode.NotFound.ToString(),
+                            Message = "Data Not Found"
+                        });
+                    }
+                    Booking toUpdate = bookingDto;
+                    toUpdate.CreatedDate = entity.CreatedDate;
+                    var result = _bookingRepository.Update(bookingDto);
+                    return Ok(new ResponseOkHandler<String>("Data Updated"));
 
-                return Ok(result);
+                }
+                catch (Exception e)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status500InternalServerError,
+                        Status = HttpStatusCode.InternalServerError.ToString(),
+                        Message = "Failed to update data",
+                        Error = e.Message
+                    });
+                }
             }
             //method delete dari http untuk delete booking
             [HttpDelete("{guid}")]
             public IActionResult Delete(Guid guid)
             {
-                var booking = _bookingRepository.GetByGuid(guid);
-                var result = _bookingRepository.Delete(booking);
-                if (!result)
+                try
                 {
-                    return BadRequest("Failed To Delete Data");
-                }
+                    var booking = _bookingRepository.GetByGuid(guid);
+                    if (booking is null)
+                    {
+                        return NotFound(new ResponseErrorHandler
+                        {
+                            Code = StatusCodes.Status404NotFound,
+                            Status = HttpStatusCode.NotFound.ToString(),
+                            Message = "Data Not Found"
+                        });
+                    }
+                    var result = _bookingRepository.Delete(booking);
+                    return Ok(new ResponseOkHandler<String>("Data Deleted"));
 
-                return Ok(result);
+                }
+                catch (Exception e)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status500InternalServerError,
+                        Status = HttpStatusCode.InternalServerError.ToString(),
+                        Message = "Failed to delete data",
+                        Error = e.Message
+                    });
+                }
             }
         }
     }
