@@ -9,21 +9,18 @@ namespace API.Utilities.Handler
 {
     public class GenerateNIKHandler
     {
-        public static string GenerateNIK(IEmployeeRepository repo)
+        public static string GenerateNIK(String? lastNik = null)
         {
-            var NIK = repo.GetAll().OrderByDescending(e => e.NIK).Select(e => e.NIK).FirstOrDefault();
+            if (lastNik == null)
+            {
+                return "111111";
 
-            int lastNik = 0;
-            if (!string.IsNullOrEmpty(NIK) && int.TryParse(NIK, out lastNik))
-            {
-                lastNik++;
-            }
-            else
-            {
-                lastNik = 111111;
             }
 
-            return lastNik.ToString("D6");
+            var nik = Convert.ToInt32(lastNik) + 1;
+
+
+            return nik.ToString("D6");
 
         }
     }

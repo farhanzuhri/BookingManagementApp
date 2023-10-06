@@ -1,6 +1,8 @@
 ﻿using API.Contracts;
+using API.DTOs.Accounts;
 using API.DTOs.Employees;
 using API.Models;
+using API.Repositories;
 using API.Utilities.Handler;
 using API.Utilities.Handlers;
 using Microsoft.AspNetCore.Mvc;
@@ -13,13 +15,55 @@ namespace API.Controllers
     [Route("api/[controller]")]
     public class EmployeeController : ControllerBase
     {
-        //membuat employee repository untuk mengakses database sebagai readonly dan private
         private readonly IEmployeeRepository _employeeRepository;
+        private readonly IEducationRepository _educationRepository;
+        private readonly IUniversityRepository _universityRepository;
+        private readonly IAccountRepository _accountRepository;  // Make sure this is declared
 
-        public EmployeeController(IEmployeeRepository employeeRepository)
+        public EmployeeController(
+            IEmployeeRepository employeeRepository,
+            IEducationRepository educationRepository,
+            IUniversityRepository universityRepository,
+            IAccountRepository accountRepository)
         {
             _employeeRepository = employeeRepository;
+            _educationRepository = educationRepository;
+            _universityRepository = universityRepository;
+            _accountRepository = accountRepository;  // Initialize the private field
         }
+
+        [HttpGet("details")]
+        public IActionResult GetDetails()
+        {
+            var employee = _employeeRepository.GetAll();
+            var education = _educationRepository.GetAll();
+            var university = _universityRepository.GetAll();
+            if (!(employee.Any() && education.Any() && university.Any()))
+            {
+                return NotFound(new ResponseErrorHandler { Code = StatusCodes.Status404NotFound, Status = HttpStatusCode.NotFound.ToString(), Message = "Data Not Found" });
+            }
+            var employeeDetails = from emp in employee
+                                  join edu in education on emp.Guid equals edu.Guid
+                                  join unv in university on edu.UniversityGuid equals unv.Guid
+                                  select new EmployeeDetailDto
+                                  {
+                                      Guid = emp.Guid,
+                                      Nik = emp.NIK,
+                                      FullName = string.Concat(emp.FirstName, " ", emp.LastName),
+                                      BirthDate = emp.BirthDate,
+                                      Gender = emp.Gender.ToString(),
+                                      HiringDate = emp.HiringDate,
+                                      Email = emp.Email,
+                                      PhoneNumber = emp.PhoneNumber,
+                                      Major = edu.Major,
+                                      Degree = edu.Degree,
+                                      Gpa = edu.GPA,
+                                      University = unv.Name
+                                  };
+
+            return Ok(new ResponseOkHandler<IEnumerable<EmployeeDetailDto>>(employeeDetails));
+        }
+
         //method get dari http untuk getall employee
         [HttpGet]
         public IActionResult GetAll()
@@ -64,7 +108,7 @@ namespace API.Controllers
             try
             {
                 Employee toCreate = createEmployeeDto;
-                toCreate.NIK = GenerateNIKHandler.GenerateNIK(_employeeRepository);
+                toCreate.NIK = GenerateNIKHandler.GenerateNIK(_employeeRepository.GetLastNik());
                 var result = _employeeRepository.Create(toCreate);
                 return Ok(new ResponseOkHandler<EmployeeDto>((EmployeeDto)result));
 

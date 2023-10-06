@@ -20,7 +20,8 @@ namespace API.Controllers
             {
                 _accountRoleRepository = accountRoleRepository;
             }
-        //method get dari http untuk getall universities
+        //method get dari http untuk getall accountrole
+        [HttpGet]
         public IActionResult GetAll()
         {
             var result = _accountRoleRepository.GetAll();

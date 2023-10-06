@@ -11,9 +11,9 @@
             return BCrypt.Net.BCrypt.HashPassword(Password, GetRandomSalt());
         }
 
-        public static bool verifvyPassword()
+        public static bool verifvyPassword(string Password, string HashedPassword)
         {
-            return true;
+            return BCrypt.Net.BCrypt.Verify(Password, HashedPassword);
         }
 
     }
