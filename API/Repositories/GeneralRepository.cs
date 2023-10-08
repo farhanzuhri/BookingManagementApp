@@ -4,15 +4,14 @@ using API.Utilities.Handler;
 
 namespace API.Repositories
 {
+    //membuat class generalrepository menggunakan generic 
     public class GeneralRepository<TEntity> : IGeneralRepository<TEntity> where TEntity : class
     {
         private readonly BookingManagementDbContext _context;
-
         public GeneralRepository(BookingManagementDbContext context)
         {
             _context = context;
         }
-
         //methood create 
         public TEntity? Create(TEntity entity)
         {
@@ -22,9 +21,21 @@ namespace API.Repositories
                 _context.SaveChanges();
                 return entity;
             }
-            catch
+            catch (Exception ex)
             {
-                throw;
+                if (ex.InnerException is not null && ex.InnerException.Message.Contains("IX_tb_m_employees_nik"))
+                {
+                    throw new ExceptionHandler("NIK already exists");
+                }
+                if (ex.InnerException is not null && ex.InnerException.Message.Contains("IX_tb_m_employees_email"))
+                {
+                    throw new ExceptionHandler("Email already exists");
+                }
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("IX_tb_m_employees_phone_number"))
+                {
+                    throw new ExceptionHandler("Phone number already exists");
+                }
+                throw new ExceptionHandler(ex.InnerException?.Message ?? ex.Message);
             }
 
 

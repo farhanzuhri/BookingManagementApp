@@ -3,6 +3,7 @@ using API.DTOs.Rooms;
 using API.Models;
 using API.Utilities.Handler;
 using API.Utilities.Handlers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -11,15 +12,101 @@ namespace API.Controllers
     //membuat endpoint routing untuk room controller 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RoomController : ControllerBase
     {
         //membuat room repository untuk mengakses database sebagai readonly dan private
         private readonly IRoomRepository _roomRepository;
+        private readonly IBookingRepository _bookingRepository;
+        private readonly IEmployeeRepository _employeeRepository;
 
-        public RoomController(IRoomRepository roomRepository)
+
+        public RoomController(IRoomRepository roomRepository, IBookingRepository bookingRepository, IEmployeeRepository employeeRepository)
         {
             _roomRepository = roomRepository;
+            _bookingRepository = bookingRepository;
+            _employeeRepository = employeeRepository;
         }
+
+        [HttpGet("roomsUsed")]
+        public IActionResult GetRoomsUsed()
+        {
+            // Check if any room, booking, and employee or not
+            var rooms = _roomRepository.GetAll();
+            var bookings = _bookingRepository.GetAll();
+            var employees = _employeeRepository.GetAll();
+            if (!(rooms.Any() && bookings.Any() && employees.Any()))
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
+            }
+            // Join data rooms, bookings, and employees to get roomsUseToday details
+            var roomsUseToday = from r in rooms
+                                join b in bookings on r.Guid equals b.RoomGuid
+                                join e in employees on b.EmployeeGuid equals e.Guid
+                                where (b.StartDate <= DateTime.Today) && (b.EndDate > DateTime.Today)
+                                select new RoomUsedTodayDto
+                                {
+                                    BookingGuid = b.Guid,
+                                    RoomName = r.Name,
+                                    Status = b.Status.ToString(),
+                                    Floor = r.Floor,
+                                    BookBy = string.Concat(e.FirstName, " ", e.LastName)
+                                };
+            if (!roomsUseToday.Any())
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Room Not Found"
+                });
+            }
+            return Ok(new ResponseOkHandler<IEnumerable<RoomUsedTodayDto>>(roomsUseToday));
+        }
+
+        [HttpGet("roomsNotUsed")]
+        public IActionResult GetRoomsNotUsed()
+        {
+            // Check if any room and booking or not
+            var rooms = _roomRepository.GetAll();
+            var bookings = _bookingRepository.GetAll();
+            if (!(rooms.Any() && bookings.Any()))
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
+            }
+            // Join data rooms and bookings to get roomsNotUseToday details
+            var roomsNotUseToday = from r in rooms
+                                   join b in bookings on r.Guid equals b.RoomGuid
+                                   where (b.StartDate > DateTime.Today) || (b.EndDate <= DateTime.Today)
+                                   select new RoomNotUsedTodayDto
+                                   {
+                                       RoomGuid = r.Guid,
+                                       RoomName = r.Name,
+                                       Floor = r.Floor,
+                                       Capacity = r.Capacity
+                                   };
+            if (!roomsNotUseToday.Any())
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Room Not Found"
+                });
+            }
+            return Ok(new ResponseOkHandler<IEnumerable<RoomNotUsedTodayDto>>(roomsNotUseToday));
+        }
+
         //method get dari http untuk getall universities
         [HttpGet]
         public IActionResult GetAll()

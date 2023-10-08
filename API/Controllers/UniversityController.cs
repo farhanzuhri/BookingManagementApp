@@ -7,11 +7,13 @@ using API.DTOs.Universities;
 using API.Utilities.Handlers;
 using API.Utilities.Handler;
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UniversityController : ControllerBase
     {
         private readonly IUniversityRepository _universityRepository;

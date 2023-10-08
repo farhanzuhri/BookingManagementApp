@@ -9,12 +9,15 @@ using API.Utilities.Handlers;
 using System.Net;
 using API.DTOs.AccountRoles;
 using API.DTOs.Employees;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
     //membuat endpoint routing untuk account controller 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize()]
     public class AccountController : ControllerBase
     {
         //membuat account repository untuk mengakses database sebagai readonly dan private
@@ -22,89 +25,81 @@ namespace API.Controllers
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IUniversityRepository _universityRepository;
         private readonly IEducationRepository _educationRepository;
+        private readonly IAccountRoleRepository _accountRoleRepository;
+        private readonly IRoleRepository _roleRepository;
         private readonly IEmailHandler _emailHandler;
+        private readonly ITokenHandler _tokenHandler;
         //dependency injection dilakukan
         public AccountController(
             IAccountRepository accountRepository,
             IEmployeeRepository employeeRepository,
             IUniversityRepository universityRepository,
+            IAccountRoleRepository accountRoleRepository,
+            IRoleRepository roleRepository,
             IEducationRepository educationRepository,
-            IEmailHandler emailHandler)
+            IEmailHandler emailHandler, ITokenHandler tokenHandler)
         {
             _accountRepository = accountRepository;
             _employeeRepository = employeeRepository;
             _universityRepository = universityRepository;
+            _accountRoleRepository = accountRoleRepository;
+            _roleRepository = roleRepository;
             _educationRepository = educationRepository;
             _emailHandler = emailHandler;
-        }
-
-        //method get dari http untuk getall account
-        [HttpGet]
-        public IActionResult GetAll()
-        {
-            var result = _accountRepository.GetAll();
-            if (!result.Any())
-            {
-                return NotFound(new ResponseErrorHandler
-                {
-                    Code = StatusCodes.Status404NotFound,
-                    Status = HttpStatusCode.NotFound.ToString(),
-                    Message = "Data Not Found"
-                });
-            }
-            var data = result.Select(i => (AccountDto)i);
-            return Ok(new ResponseOkHandler<IEnumerable<AccountDto>>(data));
-        }
-        //method get dari http untuk getByGuid account
-        [HttpGet("{guid}")]
-        public IActionResult GetByGuid(Guid guid)
-        {
-            var result = _accountRepository.GetByGuid(guid);
-            if (result is null)
-            {
-                return NotFound(new ResponseErrorHandler
-                {
-                    Code = StatusCodes.Status404NotFound,
-                    Status = HttpStatusCode.NotFound.ToString(),
-                    Message = "Data Not Found"
-                });
-            }
-            return Ok(new ResponseOkHandler<AccountDto>((AccountDto)result));
+            _tokenHandler = tokenHandler;
         }
 
         [HttpPost("ForgotPassword")]
+        [AllowAnonymous]
         public IActionResult ForgotPassword(ForgotPasswordDto forgotPasswordDto)
         {
-            var employee = _employeeRepository.GetByEmail(forgotPasswordDto.Email);
-            if (employee is null)
+            try
             {
-                return NotFound(new ResponseErrorHandler
+                var employee = _employeeRepository.GetByEmail(forgotPasswordDto.Email);
+                if (employee is null)
                 {
-                    Code = StatusCodes.Status404NotFound,
-                    Status = HttpStatusCode.NotFound.ToString(),
-                    Message = "Email Not Found"
-                });
-            }
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Email Not Found"
+                    });
+                }
 
-            var account = _accountRepository.GetByGuid(employee.Guid);
-            if (account == null)
-            {
-                return NotFound(new ResponseErrorHandler
+                var account = _accountRepository.GetByGuid(employee.Guid);
+                if (account == null)
                 {
-                    Code = StatusCodes.Status404NotFound,
-                    Status = HttpStatusCode.NotFound.ToString(),
-                    Message = "Data Not Found"
+                    return NotFound(new ResponseErrorHandler
+                    {
+                        Code = StatusCodes.Status404NotFound,
+                        Status = HttpStatusCode.NotFound.ToString(),
+                        Message = "Data Not Found"
+                    });
+                }
+                //generate otp
+                account.Otp = new Random().Next(100000, 1000000);
+                //add 5 menit untuk otp
+                account.ExpiredTime = DateTime.Now.AddMinutes(5);
+                account.IsUsed = false;
+                _accountRepository.Update(account);
+                _emailHandler.Send("Forgot password", $"Your OTP is {account.Otp}", forgotPasswordDto.Email);
+                return Ok(new ResponseOkHandler<ForgotPasswordResponseDto>((ForgotPasswordResponseDto)account));
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Login Failed",
+                    Error = e.Message
                 });
             }
-            account.Otp = GenerateOTP.GenerateOTPHandler();
-            account.ExpiredTime = DateTime.Now.AddMinutes(5);
-            account.IsUsed = false;
-            _accountRepository.Update(account);
-            _emailHandler.Send("Forgot password", $"Your OTP is {account.Otp}", forgotPasswordDto.Email);
-            return Ok(new ResponseOkHandler<string>("OTP has been send to your email"));
         }
+        
 
         [HttpPost("ChangePassword")]
+        [AllowAnonymous]
         public IActionResult ChangePassword(ChangePasswordDto changePasswordDto)
         {
             var employee = _employeeRepository.GetByEmail(changePasswordDto.Email);
@@ -170,6 +165,7 @@ namespace API.Controllers
         }
 
         [HttpPost("Login")]
+        [AllowAnonymous]
         public IActionResult Login(LoginDto loginDto)
         {
             var employee = _employeeRepository.GetByEmail(loginDto.Email);
@@ -202,13 +198,36 @@ namespace API.Controllers
                     Message = "Email or Password is Invalid"
                 });
             }
-            return Ok(new ResponseOkHandler<string>("Login Success"));
+
+            var claims = new List<Claim>();
+            claims.Add(item: new Claim(type: "Email", value: employee.Email));
+            claims.Add(item: new Claim(type: "FullName", value: string.Concat(employee.FirstName + " " +employee.LastName)));
+
+            var getRoleName = from ar in _accountRoleRepository.GetAll()
+                              join r in _roleRepository.GetAll() on ar.RoleGuid equals r.Guid
+                              where ar.AccountGuid == account.Guid
+                              select r.Name;
+
+            foreach (var roleName in getRoleName)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, roleName));
+
+            }
+            var token = _tokenHandler.Generate(claims);
+            return Ok(new ResponseOkHandler<Object>("Login Success", new { Token = token }));
         }
 
         [HttpPost("Register")]
+        [AllowAnonymous]
         public IActionResult Register(RegisterDto registerDto)
         {
-            var employee = _employeeRepository.GetByEmail(registerDto.Email);
+            using var context = _accountRepository.GetContext();
+            using var transaction = context.Database.BeginTransaction();
+
+            try
+            {
+
+                var employee = _employeeRepository.GetByEmail(registerDto.Email);
             if (employee is null)
             {
                 employee = registerDto;
@@ -247,7 +266,64 @@ namespace API.Controllers
             responseRegister.Guid = employee.Guid;
             responseRegister.Nik = employee.NIK;
             responseRegister.University = university.Name;
-            return Ok(new ResponseOkHandler<EmployeeDetailDto>(responseRegister));
+
+                _accountRepository.Create(account);
+
+                _accountRoleRepository.Create(new AccountRole
+                {
+                    Guid = new Guid(),
+                    AccountGuid = account.Guid,
+                    RoleGuid = _roleRepository.GetRoleGuid() ?? throw new Exception("default row not found")
+                });
+
+                transaction.Commit();
+                return Ok(new ResponseOkHandler<string>("Account Created"));
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                return StatusCode(StatusCodes.Status500InternalServerError, new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status500InternalServerError,
+                    Status = HttpStatusCode.InternalServerError.ToString(),
+                    Message = "Failed to Create Account",
+                    Error = e.Message
+                });
+            }
+        }
+
+        //method get dari http untuk getall account
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var result = _accountRepository.GetAll();
+            if (!result.Any())
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
+            }
+            var data = result.Select(i => (AccountDto)i);
+            return Ok(new ResponseOkHandler<IEnumerable<AccountDto>>(data));
+        }
+        //method get dari http untuk getByGuid account
+        [HttpGet("{guid}")]
+        public IActionResult GetByGuid(Guid guid)
+        {
+            var result = _accountRepository.GetByGuid(guid);
+            if (result is null)
+            {
+                return NotFound(new ResponseErrorHandler
+                {
+                    Code = StatusCodes.Status404NotFound,
+                    Status = HttpStatusCode.NotFound.ToString(),
+                    Message = "Data Not Found"
+                });
+            }
+            return Ok(new ResponseOkHandler<AccountDto>((AccountDto)result));
         }
 
         //method post dari http untuk create account

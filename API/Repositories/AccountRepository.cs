@@ -8,7 +8,15 @@ namespace API.Repositories
 {
     public class AccountRepository : GeneralRepository<Account>, IAccountRepository
     {
-        public AccountRepository(BookingManagementDbContext context) : base(context) { }
+        private readonly BookingManagementDbContext _context;
+        public AccountRepository(BookingManagementDbContext context) : base(context)
+        {
+            _context = context;
+        }
 
+        public BookingManagementDbContext GetContext()
+        {
+            return _context;
+        }
     }
 }

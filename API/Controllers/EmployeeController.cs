@@ -5,6 +5,7 @@ using API.Models;
 using API.Repositories;
 using API.Utilities.Handler;
 using API.Utilities.Handlers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
@@ -13,26 +14,25 @@ namespace API.Controllers
     //membuat endpoint routing untuk employee controller 
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "User")]
     public class EmployeeController : ControllerBase
     {
         private readonly IEmployeeRepository _employeeRepository;
         private readonly IEducationRepository _educationRepository;
         private readonly IUniversityRepository _universityRepository;
-        private readonly IAccountRepository _accountRepository;  // Make sure this is declared
 
         public EmployeeController(
             IEmployeeRepository employeeRepository,
             IEducationRepository educationRepository,
-            IUniversityRepository universityRepository,
-            IAccountRepository accountRepository)
+            IUniversityRepository universityRepository)
         {
             _employeeRepository = employeeRepository;
             _educationRepository = educationRepository;
             _universityRepository = universityRepository;
-            _accountRepository = accountRepository;  // Initialize the private field
         }
 
         [HttpGet("details")]
+        [Authorize(Policy = "Manager")]
         public IActionResult GetDetails()
         {
             var employee = _employeeRepository.GetAll();

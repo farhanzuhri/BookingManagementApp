@@ -6,8 +6,10 @@ namespace API.Repositories
 {
     public class BookingRepository : GeneralRepository<Booking>, IBookingRepository
     {
+
         public BookingRepository(BookingManagementDbContext context) : base(context)
-        {
+        { 
         }
+
     }
 }
